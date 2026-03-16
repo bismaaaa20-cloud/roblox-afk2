@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roblox Anti-AFK</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
+
+  :root {
+    --bg: #0a0c10;
+    --panel: #0f1318;
+    --border: #1e2a38;
+    --accent: #00e5ff;
+    --accent2: #ff3d6b;
+    --green: #00ff88;
+    --text: #c8d8e8;
+    --dim: #4a5a6a;
+    --glow: 0 0 12px rgba(0,229,255,0.35);
+    --glow-red: 0 0 12px rgba(255,61,107,0.35);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    font-family: 'Rajdhani', sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background-image:
+      radial-gradient(ellipse at 20% 20%, rgba(0,229,255,0.04) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 80%, rgba(255,61,107,0.04) 0%, transparent 60%);
+  }
+
+  .widget {
+    width: 100%;
+    max-width: 380px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--panel);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+
+  /* ── HEADER ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    background: linear-gradient(135deg, #0d1520, #111820);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .header-left { display: flex; align-items: center; gap: 10px; }
+
+  .logo {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--accent), #0080ff);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    box-shadow: var(--glow);
+    flex-shrink: 0;
+  }
+
+  .title-block {}
+  .title { font-size: 15px; font-weight: 700; letter-spacing: 1.5px; color: #fff; text-transform: uppercase; }
+  .subtitle { font-size: 11px; color: var(--dim); letter-spacing: 0.5px; font-family: 'Share Tech Mono', monospace; }
+
+  .header-right { display: flex; align-items: center; gap: 10px; }
+
+  .status-badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    border: 1px solid;
+    letter-spacing: 1px;
+    transition: all 0.3s;
+  }
+  .status-badge.off  { color: var(--dim); border-color: var(--dim); background: transparent; }
+  .status-badge.on   { color: var(--green); border-color: var(--green); background: rgba(0,255,136,0.08); box-shadow: 0 0 8px rgba(0,255,136,0.2); }
+
+  .chevron {
+    color: var(--dim);
+    font-size: 18px;
+    transition: transform 0.3s ease;
+    line-height: 1;
+  }
+  .chevron.open { transform: rotate(180deg); }
+
+  /* ── BODY ── */
+  .body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1);
+  }
+  .body.open { max-height: 700px; }
+
+  .body-inner { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+
+  /* ── MAIN TOGGLE ── */
+  .main-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #0d1520;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+  .toggle-label { font-size: 14px; font-weight: 600; letter-spacing: 0.5px; }
+  .toggle-desc  { font-size: 11px; color: var(--dim); margin-top: 2px; font-family: 'Share Tech Mono', monospace; }
+
+  .switch {
+    position: relative; width: 52px; height: 28px; cursor: pointer; flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .switch input { display: none; }
+  .switch-track {
+    position: absolute; inset: 0;
+    background: #1a2030;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    transition: all 0.3s;
+  }
+  .switch-thumb {
+    position: absolute;
+    top: 4px; left: 4px;
+    width: 18px; height: 18px;
+    background: var(--dim);
+    border-radius: 50%;
+    transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+  }
+  .switch input:checked ~ .switch-track {
+    background: rgba(0,255,136,0.15);
+    border-color: var(--green);
+    box-shadow: 0 0 10px rgba(0,255,136,0.2);
+  }
+  .switch input:checked ~ .switch-thumb {
+    left: 28px;
+    background: var(--green);
+    box-shadow: 0 0 8px rgba(0,255,136,0.5);
+  }
+
+  /* ── SETTINGS ── */
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--dim);
+    text-transform: uppercase;
+    font-family: 'Share Tech Mono', monospace;
+    padding: 0 2px;
+  }
+
+  .settings-grid { display: flex; flex-direction: column; gap: 8px; }
+
+  .setting-row {
+    display: flex; align-items: center; justify-content: space-between;
+    background: #0d1520;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+  }
+  .setting-info {}
+  .setting-name { font-size: 13px; font-weight: 600; }
+  .setting-hint { font-size: 10px; color: var(--dim); font-family: 'Share Tech Mono', monospace; }
+
+  .setting-control { display: flex; align-items: center; gap: 8px; }
+
+  .num-btn {
+    width: 28px; height: 28px;
+    background: #151d2a;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 16px; font-weight: 700;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .num-btn:active { background: var(--accent); color: #000; border-color: var(--accent); transform: scale(0.92); }
+
+  .num-val {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 14px;
+    color: var(--accent);
+    min-width: 36px;
+    text-align: center;
+  }
+
+  .mini-switch {
+    position: relative; width: 40px; height: 22px; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mini-switch input { display: none; }
+  .mini-switch-track {
+    position: absolute; inset: 0;
+    background: #1a2030;
+    border-radius: 11px;
+    border: 1px solid var(--border);
+    transition: all 0.3s;
+  }
+  .mini-switch-thumb {
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 14px; height: 14px;
+    background: var(--dim);
+    border-radius: 50%;
+    transition: all 0.3s;
+  }
+  .mini-switch input:checked ~ .mini-switch-track {
+    background: rgba(0,229,255,0.15);
+    border-color: var(--accent);
+  }
+  .mini-switch input:checked ~ .mini-switch-thumb {
+    left: 21px;
+    background: var(--accent);
+    box-shadow: 0 0 6px rgba(0,229,255,0.5);
+  }
+
+  /* ── LOG ── */
+  .log-box {
+    background: #080c10;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    height: 110px;
+    overflow-y: auto;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    scroll-behavior: smooth;
+  }
+  .log-box::-webkit-scrollbar { width: 3px; }
+  .log-box::-webkit-scrollbar-track { background: transparent; }
+  .log-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .log-line { display: flex; gap: 6px; align-items: baseline; }
+  .log-time { color: var(--dim); flex-shrink: 0; }
+  .log-msg  { color: var(--text); }
+  .log-msg.ok   { color: var(--green); }
+  .log-msg.warn { color: #ffcc44; }
+  .log-msg.info { color: var(--accent); }
+  .log-msg.err  { color: var(--accent2); }
+
+  /* ── NEXT ACTION ── */
+  .next-row {
+    display: flex; align-items: center; justify-content: space-between;
+    background: #0d1520;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+  }
+  .next-label { font-size: 11px; color: var(--dim); font-family: 'Share Tech Mono', monospace; letter-spacing: 0.5px; }
+  .next-val   { font-family: 'Share Tech Mono', monospace; font-size: 13px; color: var(--accent); }
+
+  /* ── PROGRESS BAR ── */
+  .progress-wrap {
+    height: 3px;
+    background: #1a2030;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--green));
+    border-radius: 2px;
+    width: 0%;
+    transition: width 1s linear;
+    box-shadow: 0 0 6px rgba(0,229,255,0.4);
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 10px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .footer-stat {
+    display: flex; gap: 16px;
+  }
+  .stat { text-align: center; }
+  .stat-val  { font-family: 'Share Tech Mono', monospace; font-size: 14px; color: var(--accent); }
+  .stat-key  { font-size: 10px; color: var(--dim); letter-spacing: 0.5px; }
+
+  .clear-btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--dim);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .clear-btn:active { color: var(--accent2); border-color: var(--accent2); }
+
+  /* pulse dot */
+  @keyframes pulse {
+    0%,100% { opacity:1; transform: scale(1); }
+    50%      { opacity:0.4; transform: scale(0.7); }
+  }
+  .pulse-dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    background: var(--green);
+    border-radius: 50%;
+    margin-right: 5px;
+    box-shadow: 0 0 6px var(--green);
+    animation: pulse 1.4s ease-in-out infinite;
+    vertical-align: middle;
+  }
+  .pulse-dot.off { background: var(--dim); box-shadow: none; animation: none; }
+</style>
+</head>
+<body>
+
+<div class="widget">
+
+  <!-- HEADER (klik untuk buka/tutup) -->
+  <div class="header" id="headerBtn">
+    <div class="header-left">
+      <div class="logo">🎮</div>
+      <div class="title-block">
+        <div class="title">Anti-AFK</div>
+        <div class="subtitle">ROBLOX · v2.0</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="status-badge off" id="statusBadge">OFFLINE</div>
+      <div class="chevron" id="chevron">▼</div>
+    </div>
+  </div>
+
+  <!-- BODY (bisa dibuka/tutup) -->
+  <div class="body" id="body">
+    <div class="body-inner">
+
+      <!-- Main Toggle -->
+      <div class="main-toggle">
+        <div>
+          <div class="toggle-label">
+            <span class="pulse-dot off" id="pulseDot"></span>Anti-AFK
+          </div>
+          <div class="toggle-desc" id="toggleDesc">Klik untuk mengaktifkan</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="mainToggle">
+          <div class="switch-track"></div>
+          <div class="switch-thumb"></div>
+        </label>
+      </div>
+
+      <!-- Settings -->
+      <div class="section-label">⚙ Pengaturan</div>
+      <div class="settings-grid">
+
+        <!-- Interval -->
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="setting-name">Interval</div>
+            <div class="setting-hint">Jeda antar aksi</div>
+          </div>
+          <div class="setting-control">
+            <button class="num-btn" id="intDown">−</button>
+            <div class="num-val"><span id="intervalVal">60</span>s</div>
+            <button class="num-btn" id="intUp">+</button>
+          </div>
+        </div>
+
+        <!-- Auto Jump -->
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="setting-name">Auto Jump</div>
+            <div class="setting-hint">Tekan SPACE di game</div>
+          </div>
+          <div class="setting-control">
+            <label class="mini-switch">
+              <input type="checkbox" id="jumpToggle" checked>
+              <div class="mini-switch-track"></div>
+              <div class="mini-switch-thumb"></div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Jump Every -->
+        <div class="setting-row" id="jumpEveryRow">
+          <div class="setting-info">
+            <div class="setting-name">Jump Setiap</div>
+            <div class="setting-hint">Jumlah putaran sekali jump</div>
+          </div>
+          <div class="setting-control">
+            <button class="num-btn" id="jeDown">−</button>
+            <div class="num-val"><span id="jumpEveryVal">5</span>x</div>
+            <button class="num-btn" id="jeUp">+</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Progress & Next -->
+      <div class="next-row">
+        <div class="next-label">AKSI BERIKUTNYA</div>
+        <div class="next-val" id="nextVal">—</div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+
+      <!-- Log -->
+      <div class="section-label">📋 Log Aktivitas</div>
+      <div class="log-box" id="logBox">
+        <div class="log-line">
+          <span class="log-time">00:00:00</span>
+          <span class="log-msg info">Siap digunakan. Aktifkan toggle di atas.</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer stats -->
+    <div class="footer">
+      <div class="footer-stat">
+        <div class="stat">
+          <div class="stat-val" id="totalActions">0</div>
+          <div class="stat-key">AKSI</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val" id="totalJumps">0</div>
+          <div class="stat-key">JUMP</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val" id="totalTime">0m</div>
+          <div class="stat-key">WAKTU</div>
+        </div>
+      </div>
+      <button class="clear-btn" id="clearBtn">CLR</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ── STATE ──
+  let isRunning    = false;
+  let interval     = 60;   // detik
+  let jumpEnabled  = true;
+  let jumpEvery    = 5;
+  let loopCount    = 0;
+  let totalActions = 0;
+  let totalJumps   = 0;
+  let startTime    = null;
+  let tickInterval = null;
+  let countdown    = 0;
+  let bodyOpen     = false;
+
+  // ── ELEMENTS ──
+  const headerBtn    = document.getElementById('headerBtn');
+  const bodyEl       = document.getElementById('body');
+  const chevronEl    = document.getElementById('chevron');
+  const mainToggle   = document.getElementById('mainToggle');
+  const statusBadge  = document.getElementById('statusBadge');
+  const pulseDot     = document.getElementById('pulseDot');
+  const toggleDesc   = document.getElementById('toggleDesc');
+  const intervalVal  = document.getElementById('intervalVal');
+  const jumpToggle   = document.getElementById('jumpToggle');
+  const jumpEveryRow = document.getElementById('jumpEveryRow');
+  const jumpEveryVal = document.getElementById('jumpEveryVal');
+  const nextVal      = document.getElementById('nextVal');
+  const progressBar  = document.getElementById('progressBar');
+  const logBox       = document.getElementById('logBox');
+  const totalActionsEl = document.getElementById('totalActions');
+  const totalJumpsEl   = document.getElementById('totalJumps');
+  const totalTimeEl    = document.getElementById('totalTime');
+  const clearBtn     = document.getElementById('clearBtn');
+
+  // ── OPEN / CLOSE ──
+  headerBtn.addEventListener('click', () => {
+    bodyOpen = !bodyOpen;
+    bodyEl.classList.toggle('open', bodyOpen);
+    chevronEl.classList.toggle('open', bodyOpen);
+  });
+
+  // ── INTERVAL BUTTONS ──
+  document.getElementById('intDown').addEventListener('click', () => {
+    if (interval > 5) { interval -= 5; intervalVal.textContent = interval; }
+  });
+  document.getElementById('intUp').addEventListener('click', () => {
+    if (interval < 300) { interval += 5; intervalVal.textContent = interval; }
+  });
+
+  // ── JUMP TOGGLE ──
+  jumpToggle.addEventListener('change', () => {
+    jumpEnabled = jumpToggle.checked;
+    jumpEveryRow.style.opacity = jumpEnabled ? '1' : '0.4';
+  });
+
+  // ── JUMP EVERY BUTTONS ──
+  document.getElementById('jeDown').addEventListener('click', () => {
+    if (jumpEvery > 1) { jumpEvery--; jumpEveryVal.textContent = jumpEvery; }
+  });
+  document.getElementById('jeUp').addEventListener('click', () => {
+    if (jumpEvery < 20) { jumpEvery++; jumpEveryVal.textContent = jumpEvery; }
+  });
+
+  // ── MAIN TOGGLE ──
+  mainToggle.addEventListener('change', () => {
+    isRunning = mainToggle.checked;
+    if (isRunning) startAFK(); else stopAFK();
+  });
+
+  // ── LOG ──
+  function getTime() {
+    const d = new Date();
+    return [d.getHours(), d.getMinutes(), d.getSeconds()]
+      .map(n => String(n).padStart(2,'0')).join(':');
+  }
+
+  function addLog(msg, type = '') {
+    const line = document.createElement('div');
+    line.className = 'log-line';
+    line.innerHTML = `<span class="log-time">${getTime()}</span><span class="log-msg ${type}">${msg}</span>`;
+    logBox.appendChild(line);
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+
+  clearBtn.addEventListener('click', () => {
+    logBox.innerHTML = '';
+    addLog('Log dibersihkan.', 'info');
+  });
+
+  // ── AFK LOGIC ──
+  // Ini mensimulasikan aksi — di browser tidak bisa langsung kontrol keyboard/mouse luar.
+  // Di HP: buka halaman ini di browser, biarkan menyala.
+  // Di PC: untuk aksi nyata ke Roblox, jalankan roblox_anti_afk.py (Python script).
+  // Halaman ini berfungsi sebagai controller & monitor visual.
+
+  function doAction() {
+    loopCount++;
+    totalActions++;
+    totalActionsEl.textContent = totalActions;
+
+    const doJump = jumpEnabled && (loopCount % jumpEvery === 0);
+
+    if (doJump) {
+      totalJumps++;
+      totalJumpsEl.textContent = totalJumps;
+      addLog(`🦘 Jump! (aksi #${totalActions})`, 'ok');
+      // Trigger visual feedback
+      pulseDot.style.background = '#ff3d6b';
+      setTimeout(() => { if(isRunning) pulseDot.style.background = 'var(--green)'; }, 300);
+    } else {
+      addLog(`🖱️ Mouse moved. (aksi #${totalActions})`, 'ok');
+    }
+  }
+
+  function startAFK() {
+    isRunning    = true;
+    loopCount    = 0;
+    countdown    = interval;
+    startTime    = Date.now();
+
+    statusBadge.textContent = 'ONLINE';
+    statusBadge.className   = 'status-badge on';
+    pulseDot.className      = 'pulse-dot';
+    toggleDesc.textContent  = 'Berjalan...';
+
+    addLog('✅ Anti-AFK diaktifkan.', 'ok');
+    addLog(`⚙ Interval: ${interval}s | Jump: ${jumpEnabled ? 'ON tiap '+jumpEvery+'x' : 'OFF'}`, 'info');
+
+    // First action immediately
+    doAction();
+
+    tickInterval = setInterval(() => {
+      countdown--;
+
+      // Update next & progress
+      nextVal.textContent = `${countdown}s`;
+      progressBar.style.width = ((interval - countdown) / interval * 100) + '%';
+
+      // Update waktu
+      const elapsed = Math.floor((Date.now() - startTime) / 60000);
+      totalTimeEl.textContent = elapsed + 'm';
+
+      if (countdown <= 0) {
+        countdown = interval;
+        doAction();
+      }
+    }, 1000);
+  }
+
+  function stopAFK() {
+    isRunning = false;
+    clearInterval(tickInterval);
+
+    statusBadge.textContent = 'OFFLINE';
+    statusBadge.className   = 'status-badge off';
+    pulseDot.className      = 'pulse-dot off';
+    toggleDesc.textContent  = 'Klik untuk mengaktifkan';
+    nextVal.textContent     = '—';
+    progressBar.style.width = '0%';
+
+    addLog('⛔ Anti-AFK dimatikan.', 'warn');
+  }
+</script>
+</body>
+</html>
